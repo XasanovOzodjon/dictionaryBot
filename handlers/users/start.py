@@ -1,5 +1,7 @@
 from telegram.ext import CommandHandler
+from middlewares.check_subscribe import subscription_required
 
+@subscription_required
 def bot_start(update, context):
     update.message.reply_text(f"Salom, {update.effective_user.full_name}!")
 

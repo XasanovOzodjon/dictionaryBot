@@ -1,4 +1,4 @@
 from telegram import Bot
-from data import config
+from data.config import config
 
 bot = Bot(token=config.BOT_TOKEN)

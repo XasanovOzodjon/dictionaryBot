@@ -1,5 +1,7 @@
 from telegram.ext import CommandHandler
+from middlewares.check_subscribe import subscription_required
 
+@subscription_required
 def bot_help(update, context):
     text = (
         "Buyruqlar: ",
