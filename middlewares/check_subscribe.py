@@ -56,7 +56,7 @@ def subscription_required(func):
     @wraps(func)
     def wrapper(update, context, *args, **kwargs):
         if not check_subscribe(update, context):
-            return  # Agar obuna bo'lmagan bo'lsa, handler ishlamaydi
+            return 
         return func(update, context, *args, **kwargs)
     return wrapper
         

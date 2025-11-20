@@ -1,0 +1,1 @@
+NAME, CHANNAL_ID, USERNAME = range(3)
