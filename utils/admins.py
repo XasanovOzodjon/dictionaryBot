@@ -20,6 +20,6 @@ def send_admin_message(dp, message):
     admins = get_admins()
     for admin in admins:
         try:
-            dp.send_message(admin.telegram_id, message)
+            dp.bot.send_message(admin.telegram_id, message)
         except Exception as err:
             logging.exception(err)

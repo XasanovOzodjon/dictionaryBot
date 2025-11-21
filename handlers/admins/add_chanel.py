@@ -2,7 +2,7 @@ from data import get_db
 from models.admins import Chanels
 from utils.admins import send_admin_message
 from middlewares.for_admin import admin_only
-from states.add_chanel import NAME, CHANNAL_ID, USERNAME
+from states.add_chanel import NAME, CHANNEL_ID, USERNAME
 from telegram.ext import (
     CommandHandler, MessageHandler,
     ConversationHandler, Filters
@@ -16,7 +16,7 @@ def add_chanel(update, context):
 def get_chanel_name(update, context):
     context.user_data['chanel_name'] = update.message.text
     update.message.reply_text("Iltimos, kanal ID sini kiriting:")
-    return CHANNAL_ID
+    return CHANNEL_ID
 
 def get_chanel_id(update, context):
     context.user_data['chanel_id'] = update.message.text
@@ -47,9 +47,10 @@ def register_handlers(dp):
         entry_points=[CommandHandler('add_channel', add_chanel), MessageHandler(Filters.text('➕ add Channel'), add_chanel)],
         states={
             NAME: [MessageHandler(Filters.text & ~Filters.command, get_chanel_name)],
-            CHANNAL_ID: [MessageHandler(Filters.text & ~Filters.command, get_chanel_id)],
+            CHANNEL_ID: [MessageHandler(Filters.text & ~Filters.command, get_chanel_id)],
             USERNAME: [MessageHandler(Filters.text & ~Filters.command, get_chanel_username)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
+        per_message=False,
     )
     dp.add_handler(conv_handler)

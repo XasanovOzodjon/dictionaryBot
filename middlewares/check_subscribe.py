@@ -23,7 +23,7 @@ def check_subscribe(update, context):
             if status not in ("creator", "administrator", "member", "restricted"):
                 not_subscribed.append(channel)
         except TelegramError:
-            send_admin_message(context.bot, f"ERROR: Bot is not a member of the channel {channel.name} ({channel.channel_id}).")
+            # send_admin_message(context, f"ERROR: Bot is not a member of the channel {channel.name} ({channel.channel_id}).")
             not_subscribed.append(channel)  # Agar bot kanalda a'zo bo'lmasa, foydalanuvchi ham a'zo emas deb hisoblaymiz
             
     if not_subscribed:
