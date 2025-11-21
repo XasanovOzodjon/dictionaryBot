@@ -1,4 +1,5 @@
-from telegram.ext import CommandHandler
+from telegram.ext import CommandHandler, MessageHandler, Filters
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from middlewares.check_subscribe import subscription_required
 
 @subscription_required
@@ -8,7 +9,17 @@ def bot_help(update, context):
         "/start - Botni ishga tushirish",
         "/help - Yordam"
     )
-    update.message.reply_text("\n".join(text))
+    admin_keyboard = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Contact Admin", url="https://t.me/Xasanov_Ozodjon")]
+        ]
+    )
+    update.message.reply_text(
+        "\n".join(text),
+        reply_markup=admin_keyboard
+
+        )
 
 def register_handlers(dp):
     dp.add_handler(CommandHandler("help", bot_help))
+    dp.add_handler(MessageHandler(Filters.text(["Help ❓", "Помощь ❓", "Yordam ❓"]), bot_help))
