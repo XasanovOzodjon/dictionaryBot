@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from utils.misc.languages import languages
 
-def create_translate_to_keyboard(page=1, languages_per_page=9):
+def create_translate_to_keyboard(page=1, languages_per_page=9, text = 'translate_to_') -> InlineKeyboardMarkup:
     """
     Tarjima qilish uchun tillar klaviaturasini yaratadi
     """
@@ -25,7 +25,7 @@ def create_translate_to_keyboard(page=1, languages_per_page=9):
                 display_name = lang_name if len(lang_name) <= 10 else lang_name[:7] + "..."
                 row.append(InlineKeyboardButton(
                     display_name,
-                    callback_data=f"translate_to_{lang_code}"
+                    callback_data=f"{text}{lang_code}"
                 ))
         buttons.append(row)
     

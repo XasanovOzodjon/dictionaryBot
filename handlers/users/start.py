@@ -90,7 +90,6 @@ def get_language(update, context):
         new_settings = User_Settings(
             from_user=user_id,
             language=selected_language,
-            translate_from=selected_language,
         )
         db.add(new_settings)
         db.commit()
