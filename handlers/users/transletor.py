@@ -8,7 +8,7 @@ import threading
 import time
 from data import get_db
 from keyboards.inline.translate_languages import create_translate_to_keyboard
-
+from googletrans import Translator
 from states.start import TRANSLATE, CHECK_TR
 
 def transletor_handler(update: Update, context: CallbackContext):
@@ -47,15 +47,13 @@ def transletor_handler(update: Update, context: CallbackContext):
 
 def tr(update: Update, context: CallbackContext):
     user, user_settings = get_user_and_settings(update.effective_user.id)
+    text = update.message.text
+    from_user = user_settings.translate_from
+    to_tr = user_settings.translate_to
+    translator = Translator()
+    result = translator.translate(f"{text}", src=f'{from_user}', dest=f'{to_tr}')
     
-    if user_settings.language == 'en':
-        text = f"Translating: {update.message.text}\n\n[Translation result will be here]"
-    elif user_settings.language == 'ru':
-        text = f"Перевожу: {update.message.text}\n\n[Результат перевода будет здесь]"
-    else:
-        text = f"Tarjima qilyapman: {update.message.text}\n\n[Tarjima natijasi shu yerda bo'ladi]"
-    
-    update.message.reply_text(text)
+    update.message.reply_text(result.text)
     return TRANSLATE
 
 
