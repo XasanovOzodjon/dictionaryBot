@@ -47,7 +47,11 @@ def check_settings_callback(update: Update, context):
             # Save changes to database
             db.commit()
 
-            query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            try:
+                query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            except Exception:
+                # If keyboard update fails (e.g., same content), just continue
+                pass
             return SETTINGS
     if query_data == "disable_tog":
         with next(get_db()) as db:
@@ -60,7 +64,11 @@ def check_settings_callback(update: Update, context):
             # Save changes to database
             db.commit()
             
-            query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            try:
+                query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            except Exception:
+                # If keyboard update fails (e.g., same content), just continue
+                pass
             return SETTINGS
     if query_data == "enable_ai":
         with next(get_db()) as db:
@@ -70,7 +78,11 @@ def check_settings_callback(update: Update, context):
             user_settings = db.merge(user_settings)
             user_settings.ai_assistant = True
             db.commit()
-            query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            try:
+                query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            except Exception:
+                # If keyboard update fails (e.g., same content), just continue
+                pass
             return SETTINGS
     if query_data == "disable_ai":
         with next(get_db()) as db:
@@ -80,7 +92,11 @@ def check_settings_callback(update: Update, context):
             user_settings = db.merge(user_settings)
             user_settings.ai_assistant = False
             db.commit()
-            query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            try:
+                query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
+            except Exception:
+                # If keyboard update fails (e.g., same content), just continue
+                pass
             return SETTINGS
     if query_data == "close_settings":
         user, user_settings = get_user_and_settings(update.effective_user.id)
@@ -280,11 +296,26 @@ def change_settings_callback(update: Update, context):
                 text=text,
                 reply_markup=get_settings_keyboard(user_settings))
             return SETTINGS
-    elif query_data.startswith("translate_page_"):
-            page = int(query_data.replace("translate_page_", ""))
-            update.callback_query.edit_message_reply_markup(
-                reply_markup=create_translate_to_keyboard(page=page)
-            )
+    elif query_data.startswith("page_"):
+            # Handle page navigation for different language selection contexts
+            if query_data.startswith("page_from"):
+                page = int(query_data.replace("page_from", ""))
+                text_prefix = 'translate_from_'
+            elif query_data.startswith("page_to"):
+                page = int(query_data.replace("page_to", ""))
+                text_prefix = 'translate_to_'
+            else:
+                # Default case for backward compatibility
+                page = int(query_data.replace("translate_page_", ""))
+                text_prefix = 'translate_to_'
+            
+            try:
+                update.callback_query.edit_message_reply_markup(
+                    reply_markup=create_translate_to_keyboard(page=page, text=text_prefix)
+                )
+            except Exception:
+                # If keyboard update fails (e.g., same content), just continue
+                pass
             update.callback_query.answer()
             return CHECK_SETTINGS
 

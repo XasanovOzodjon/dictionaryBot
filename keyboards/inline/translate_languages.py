@@ -32,16 +32,19 @@ def create_translate_to_keyboard(page=1, languages_per_page=9, text = 'translate
     # Navigatsiya tugmalari
     nav_buttons = []
     
+    # Sahifa navigatsiya uchun prefix yaratish
+    page_prefix = f"page_{text.replace('translate_', '').replace('_', '')}"
+    
     # Orqaga tugmasi
     if page > 1:
-        nav_buttons.append(InlineKeyboardButton("◀️ Orqaga", callback_data=f"translate_page_{page-1}"))
+        nav_buttons.append(InlineKeyboardButton("◀️ Orqaga", callback_data=f"{page_prefix}{page-1}"))
     
     # Sahifa raqami
     nav_buttons.append(InlineKeyboardButton(f"{page}/{total_pages}", callback_data="page_info"))
     
     # Oldinga tugmasi
     if page < total_pages:
-        nav_buttons.append(InlineKeyboardButton("Oldinga ▶️", callback_data=f"translate_page_{page+1}"))
+        nav_buttons.append(InlineKeyboardButton("Oldinga ▶️", callback_data=f"{page_prefix}{page+1}"))
     
     if nav_buttons:
         buttons.append(nav_buttons)

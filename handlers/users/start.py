@@ -154,11 +154,16 @@ def get_translate_to(update, context):
             )
             return USE_TOG
 
-        elif callback_data.startswith("translate_page_"):
-            page = int(callback_data.replace("translate_page_", ""))
-            update.callback_query.edit_message_reply_markup(
-                reply_markup=create_translate_to_keyboard(page=page)
-            )
+        elif callback_data.startswith("page_"):
+            # Handle page navigation - default translate_to_ context for start handler
+            page = int(callback_data.replace("page_to", ""))
+            try:
+                update.callback_query.edit_message_reply_markup(
+                    reply_markup=create_translate_to_keyboard(page=page, text='translate_to_')
+                )
+            except Exception:
+                # If keyboard update fails (e.g., same content), just continue
+                pass
             update.callback_query.answer()
             return TRANSLATE_TO
 
