@@ -1,5 +1,16 @@
+from .users.ai import ai
 from . import errors
-from .users import start, help, echo, settings, transletor, dicts, add_one,add_multe
+from .users import (
+    start,
+    help,
+    settings,
+    transletor,
+    dicts,
+    add_one,
+    add_multe,
+    games_main,
+    ai
+)
 from . import groups
 from .admins import add_chanel
 from .errors.error_handler import error_handler
@@ -18,3 +29,5 @@ def register_handlers(dp):
     dicts.register_handlers(dp)
     add_one.register_handlers(dp)
     add_multe.register_handlers(dp)
+    games_main.register_handlers(dp)
+    ai.register_handlers(dp)
