@@ -3,4 +3,4 @@ from . import start
 from . import echo
 from . import settings
 from . import transletor
-from .dict import dicts
+from .dict import dicts, add_one

@@ -12,6 +12,7 @@ class User(Base):
     username = Column(String, nullable=True)
     
     user_settings = relationship("User_Settings", back_populates="user", uselist=False)
+    dicts = relationship("Dict", back_populates="user")
     
     def __repr__(self):
         return f"<User(telegram_id={self.telegram_id}, username={self.username})>"

@@ -13,6 +13,10 @@ from states.start import TRANSLATE, CHECK_TR
 
 def transletor_handler(update: Update, context: CallbackContext):
     user, user_setings = get_user_and_settings(update.effective_user.id)
+    if not user:
+        update.message.reply_text("Please start the bot using /start command.")
+        return
+
     if user_setings.language == 'en':
         text = "Translator:"
     elif user_setings.language == 'ru':

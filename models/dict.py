@@ -1,6 +1,5 @@
 from data import Base
 from sqlalchemy import Column, Integer, String, ForeignKey, Text
-from .users import User
 from sqlalchemy.orm import relationship
 
 class TOG(Base):
@@ -21,8 +20,8 @@ class Dict(Base):
     value = Column(String, nullable=False)
     user_id = Column(ForeignKey('users.id'), nullable=False)
     
-    tog = relationship(TOG, back_populates='dict')
-    user = relationship(User, back_populates='dicts')
+    tog = relationship("TOG", back_populates='dict')
+    user = relationship("User", back_populates='dicts')
     
 
     

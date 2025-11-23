@@ -4,7 +4,7 @@ def get_dict_keyboard(lang: str) -> ReplyKeyboardMarkup:
      if lang == "en":
          return ReplyKeyboardMarkup(
              [
-                 [KeyboardButton("📚 My Dicts"), KeyboardButton("➕ Add dict")],
+                 [KeyboardButton("📚 My Dicts"), KeyboardButton("➕ Add dictionary")],
                  [KeyboardButton("🎮 Games")],
                  [KeyboardButton("🔙 Back")],
              ],
@@ -33,7 +33,7 @@ def get_add_dict_keyboard(lang: str) -> ReplyKeyboardMarkup:
     if lang == "en":
         return ReplyKeyboardMarkup(
             [
-                [KeyboardButton("➕ Add One Dict"), KeyboardButton("➕ Add Multiple Dicts")],
+                [KeyboardButton("➕ Add One Word"), KeyboardButton("➕ Add Multiple Words")],
                 [KeyboardButton("🔙 Back to Dictionary")],
             ],
             resize_keyboard=True
@@ -41,7 +41,7 @@ def get_add_dict_keyboard(lang: str) -> ReplyKeyboardMarkup:
     elif lang == "ru":
         return ReplyKeyboardMarkup(
             [
-                [KeyboardButton("➕ Добавить один словарь"), KeyboardButton("➕ Добавить несколько словарей")],
+                [KeyboardButton("➕ Добавить одно слово"), KeyboardButton("➕ Добавить несколько слов")],
                 [KeyboardButton("🔙 Назад к словарю")],
             ],
             resize_keyboard=True
@@ -49,7 +49,7 @@ def get_add_dict_keyboard(lang: str) -> ReplyKeyboardMarkup:
     else:  # default to Uzbek
         return ReplyKeyboardMarkup(
             [
-                [KeyboardButton("➕ Bitta lug'at qo'shish"), KeyboardButton("➕ Bir nechta lug'at qo'shish")],
+                [KeyboardButton("➕ Bitta so'z qo'shish"), KeyboardButton("➕ Bir nechta so'z qo'shish")],
                 [KeyboardButton("🔙 Orqaga lug'atga")],
             ],
             resize_keyboard=True

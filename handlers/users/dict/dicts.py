@@ -12,11 +12,11 @@ def dict_menu(update, context):
         return
     
     if user_settings.language == "en":
-        text = "Dictionary Menu"
+        text = "Dictionary Menu📚"
     elif user_settings.language == "ru":
-        text = "Меню словаря"
+        text = "Меню словаря📚"
     else:  # default to Uzbek
-        text = "Lug'at menyusi"
+        text = "Lug'at menu📚"
         
     update.message.reply_text(text, reply_markup=get_dict_keyboard(user_settings.language))
 
@@ -28,11 +28,11 @@ def add_dict_handler(update, context):
         return
     
     if user_settings.language == "en":
-        text = "Add Dictionary"
+        text = "➕ Add dictionary"
     elif user_settings.language == "ru":
-        text = "Добавить словарь"
+        text = "➕ Добавить словарь"
     else:  # default to Uzbek
-        text = "Lug'at qo'shish"
+        text = "➕ Lug'at qo'shish"
         
     update.message.reply_text(text, reply_markup=get_add_dict_keyboard(user_settings.language))
     
@@ -41,4 +41,4 @@ def register_handlers(dp):
     dp.add_handler(CommandHandler('dictionary', dict_menu))
     dp.add_handler(MessageHandler(Filters.text(['🔙 Back to Dictionary', '🔙 Назад к словарю', "🔙 Orqaga lug'atga"]), dict_menu))
 
-    dp.add_handler(MessageHandler(Filters.text(['➕ Add dict', '➕ Добавить словарь', "➕ Lug'at qo'shish"]), add_dict_handler))
+    dp.add_handler(MessageHandler(Filters.text(['➕ Add dictionary', '➕ Добавить словарь', "➕ Lug'at qo'shish"]), add_dict_handler))

@@ -16,7 +16,7 @@ def settings_handler(update: Update, context):
     user, user_settings = get_user_and_settings(update.effective_user.id)
 
     if not user or not user_settings:
-        update.message.reply_text("Sozlamalar topilmadi. Iltimos, botni qaytadan boshlating /start")
+        update.message.reply_text("Please start the bot using /start command.")
         return ConversationHandler.END
 
     if user_settings.language == 'en':

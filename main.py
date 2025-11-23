@@ -6,6 +6,7 @@ from utils.set_bot_commands import set_default_commands
 from models.admins import Admins
 from models.users import User
 from models.settings import User_Settings
+from models.dict import Dict, TOG
 from data.database import Base, engine
 from data import get_db
 
