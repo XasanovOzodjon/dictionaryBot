@@ -11,7 +11,7 @@ from data.database import Base, engine
 from data import get_db
 
 def main():
-    Base.metadata.drop_all(engine)
+    # Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     
     try:

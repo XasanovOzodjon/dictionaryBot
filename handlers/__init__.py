@@ -1,5 +1,5 @@
 from . import errors
-from .users import start, help, echo, settings, transletor, dicts, add_one
+from .users import start, help, echo, settings, transletor, dicts, add_one,add_multe
 from . import groups
 from .admins import add_chanel
 from .errors.error_handler import error_handler
@@ -17,3 +17,4 @@ def register_handlers(dp):
     transletor.register_handlers(dp)
     dicts.register_handlers(dp)
     add_one.register_handlers(dp)
+    add_multe.register_handlers(dp)

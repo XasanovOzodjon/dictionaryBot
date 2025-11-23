@@ -5,7 +5,10 @@ from utils.users_servise import get_user_and_settings
 from states.dict import ONE_GET_KEY, ONE_GET_VALUE, ONE_GET_OBRAZ, ONE_GET_GARMANIZATION, ONE_SAVE
 from data import get_db
 from keyboards.default.dict import get_dict_keyboard
+from middlewares.check_subscribe import subscription_required
 
+
+@subscription_required
 def add_one_dict_handler(update: Update, context):
     user, user_settings = get_user_and_settings(update.effective_user.id)
 
