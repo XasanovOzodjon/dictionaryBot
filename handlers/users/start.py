@@ -1,6 +1,6 @@
 from telegram.ext import (
     CommandHandler, CallbackQueryHandler,
-    ConversationHandler
+    ConversationHandler, MessageHandler, Filters
 )
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from middlewares.check_subscribe import subscription_required
@@ -274,7 +274,9 @@ def handle_ai_assistant(update, context):
         return ConversationHandler.END
     finally:
         db.close()
-      
+
+
+   
 def register_handlers(dp):
     """ConversationHandler va boshqa handlerlarni ro'yxatdan o'tkazish"""
     start_handler = ConversationHandler(
@@ -289,3 +291,4 @@ def register_handlers(dp):
         per_message=False,
     )
     dp.add_handler(start_handler)
+    dp.add_handler(MessageHandler(Filters.text(['🔙 Orqaga', '🔙 Back', '🔙 Назад']), bot_start))
