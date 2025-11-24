@@ -1,4 +1,7 @@
+# pip imports
 from telegram.ext import MessageHandler, Filters
+
+# local imports
 from middlewares.check_subscribe import subscription_required
 
 @subscription_required

@@ -1,5 +1,8 @@
+# standard imports
 import time
 from functools import wraps
+
+# pip imports
 from telegram import Update
 from telegram.ext import CallbackContext
 

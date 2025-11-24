@@ -1,29 +1,30 @@
+# pip imports
 from telegram.ext import (
     CommandHandler, CallbackQueryHandler,
     ConversationHandler, MessageHandler, Filters
 )
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
-from middlewares.check_subscribe import subscription_required
-from keyboards.default.menu_keyboard import get_menu_keyboard
-from keyboards.inline.language import language_keyboard
-from keyboards.inline.translate_languages import create_translate_to_keyboard
-from states.start import LANGUAGE, TRANSLATE_TO, USE_TOG, AI_ASSISTANT
+
+# local imports
+from data import get_db
 from models.users import User
 from models.settings import User_Settings
-from data import get_db
-import logging
+from utils.users_servise import UserUpdate
+from keyboards.inline.language import language_keyboard
+from middlewares.check_subscribe import subscription_required
+from keyboards.default.menu_keyboard import get_menu_keyboard
+from states.start import LANGUAGE, TRANSLATE_TO, USE_TOG, AI_ASSISTANT
+from keyboards.inline.translate_languages import create_translate_to_keyboard
 
 
 @subscription_required
 def bot_start(update, context):
     """Foydalanuvchi /start bosganda ishlaydi"""
-    logging.info(f"Start handler called for user {update.effective_user.id}")
     user_id = update.effective_user.id
-    session = next(get_db())
+    db = next(get_db())
     
     try:
-        # Foydalanuvchi tekshirish
-        user = session.query(User).filter_by(telegram_id=user_id).first()
+        user = db.query(User).filter_by(telegram_id=user_id).first()
         if not user:
             user = User(
                 telegram_id=user_id,
@@ -31,9 +32,11 @@ def bot_start(update, context):
                 last_name=update.effective_user.last_name,
                 username=update.effective_user.username
             )
-            session.add(user)
-            session.commit()
-            session.refresh(user)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            UserUpdate(update, context)
+            
             text = f"👋 Welcome {user.first_name}!\nTo get started, please select your preferred language:"
             reply_markup = language_keyboard
             
@@ -46,7 +49,7 @@ def bot_start(update, context):
             return LANGUAGE
 
         # Foydalanuvchi bor, ammo settings yo'q
-        settings = session.query(User_Settings).filter_by(from_user=user_id).first()
+        settings = db.query(User_Settings).filter_by(from_user=user_id).first()
         if not settings:
             text = f"👋 Welcome {user.first_name}! To continue, please select your preferred language:"
             reply_markup = language_keyboard
@@ -58,6 +61,8 @@ def bot_start(update, context):
                 update.callback_query.edit_message_text(text, reply_markup=reply_markup)
             
             return LANGUAGE
+        
+        
 
         if settings.language == "en":
             text = f"👋 Welcome {user.first_name}! You in main menu."
@@ -76,7 +81,7 @@ def bot_start(update, context):
         return ConversationHandler.END
         
     finally:
-        session.close()
+        db.close()
 
 
 def get_language(update, context):
@@ -84,6 +89,8 @@ def get_language(update, context):
     db = next(get_db())
     user_id = update.effective_user.id
     selected_language = update.callback_query.data
+    if not context.user_data:
+        UserUpdate(update, context)
 
     try:
         # User_Settings yaratish
@@ -93,23 +100,27 @@ def get_language(update, context):
         )
         db.add(new_settings)
         db.commit()
-        context.user_data['language'] = selected_language
+        db.refresh(new_settings)
+        UserUpdate(update, context)
+        
 
         # Til tanlangandan keyin translate_to tilini tanlashni so'rash
-        if selected_language == "en":
+        if context.user_data['language'] == "en":
             text = "🌍 Select the target language to translate into:"
-        elif selected_language == "ru":
+            answer_text = "Thank you for selecting your language!"
+        elif context.user_data['language'] == "ru":
             text = "🌍 Выберите целевой язык для перевода:"
-        else:
+            answer_text = "Спасибо за выбор языка!"
+        elif context.user_data['language'] == "uz":
             text = "🌍 Tarjimon qaysi tilga tarjima qilsin:"
+            answer_text = "Tilni tanlaganingiz uchun rahmat!"
 
-        update.callback_query.answer()
+        update.callback_query.answer(answer_text)
         update.callback_query.edit_message_text(
             text=text,
             reply_markup=create_translate_to_keyboard()
         )
         return TRANSLATE_TO
-        
     finally:
         db.close()
 
@@ -119,6 +130,10 @@ def get_translate_to(update, context):
     db = next(get_db())
     user_id = update.effective_user.id
     callback_data = update.callback_query.data
+    if not context.user_data:
+        UserUpdate(update, context)
+    
+    lang = context.user_data['language']
 
     try:
         if callback_data.startswith("translate_to_"):
@@ -127,15 +142,16 @@ def get_translate_to(update, context):
             if user_settings:
                 user_settings.translate_to = selected_language
                 db.commit()
+                UserUpdate(update, context)
 
             update.callback_query.answer()
-            if user_settings and user_settings.language == "en":
+            if lang == "en":
                 success_text = "Great! Do you use the TOG method ❓"
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("yes", callback_data="use_tog_yes"), InlineKeyboardButton("no", callback_data="use_tog_no")],
                     [InlineKeyboardButton("What is Tog metod", callback_data="tog_info")]
                 ])
-            elif user_settings and user_settings.language == "ru":
+            elif lang == "ru":
                 success_text = "Отлично! Используете ли вы метод TOG ❓"
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("Да", callback_data="use_tog_yes"), InlineKeyboardButton("нет", callback_data="use_tog_no")],
@@ -155,15 +171,14 @@ def get_translate_to(update, context):
             return USE_TOG
 
         elif callback_data.startswith("page_"):
-            # Handle page navigation - default translate_to_ context for start handler
             page = int(callback_data.replace("page_to", ""))
             try:
                 update.callback_query.edit_message_reply_markup(
                     reply_markup=create_translate_to_keyboard(page=page, text='translate_to_')
                 )
             except Exception:
-                # If keyboard update fails (e.g., same content), just continue
                 pass
+            
             update.callback_query.answer()
             return TRANSLATE_TO
 
@@ -179,22 +194,26 @@ def handle_use_tog(update, context):
     db = next(get_db())
     user_id = update.effective_user.id
     callback_data = update.callback_query.data
+    if not context.user_data:
+        UserUpdate(update, context)
+    
+    lang = context.user_data['language']
 
     try:
         user_settings = db.query(User_Settings).filter_by(from_user=user_id).first()
         if callback_data == "tog_info":
-            if user_settings and user_settings.language == "en":
+            if lang == "en":
                 info_text = "TOG metod is ...\nDo you use the TOG method ❓"
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("yes", callback_data="use_tog_yes"), InlineKeyboardButton("no", callback_data="use_tog_no")],
                 ])
-            elif user_settings and user_settings.language == "ru":
-                info_text = "TOG metod is ...\nИспользуете ли вы метод TOG ❓"
+            elif lang == "ru":
+                info_text = "TOG метод это ...\nИспользуете ли вы метод TOG ❓"
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("Да", callback_data="use_tog_yes"), InlineKeyboardButton("нет", callback_data="use_tog_no")],
                 ])
             else:
-                info_text = "TOG metod is ...\nSiz TOG usulidan foydalanasizmi ❓"
+                info_text = "TOG метод это ...\nSiz TOG usulidan foydalanasizmi ❓"
                 keyboard = InlineKeyboardMarkup([
                     [InlineKeyboardButton("Ha", callback_data="use_tog_yes"), InlineKeyboardButton("Yo'q", callback_data="use_tog_no")],
                 ])
@@ -211,14 +230,15 @@ def handle_use_tog(update, context):
             elif callback_data == "use_tog_no":
                 user_settings.use_TOG = False
             db.commit()
+            UserUpdate(update, context)
 
         update.callback_query.answer()
-        if user_settings and user_settings.language == "en":
+        if lang == "en":
             success_text = "Great! Do you use AI assistant?"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Yes", callback_data="ai_assistant_yes"), InlineKeyboardButton("No", callback_data="ai_assistant_no")],
             ])
-        elif user_settings and user_settings.language == "ru":
+        elif lang == "ru":
             success_text = "Отлично! Вы используете AI помощника?"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Да", callback_data="ai_assistant_yes"), InlineKeyboardButton("Нет", callback_data="ai_assistant_no")],
@@ -242,7 +262,10 @@ def handle_ai_assistant(update, context):
     db = next(get_db())
     user_id = update.effective_user.id
     callback_data = update.callback_query.data
-
+    if not context.user_data:
+        UserUpdate(update, context)    
+    
+    lang = context.user_data['language']
     try:
         user_settings = db.query(User_Settings).filter_by(from_user=user_id).first()
         if user_settings:
@@ -251,10 +274,11 @@ def handle_ai_assistant(update, context):
             elif callback_data == "ai_assistant_no":
                 user_settings.ai_assistant = False
             db.commit()
+            UserUpdate(update, context)
         update.callback_query.answer()
-        if user_settings and user_settings.language == "en":
+        if lang  == "en":
             success_text = "Setup complete!"
-        elif user_settings and user_settings.language == "ru":
+        elif lang == "ru":
             success_text = "Настройка завершена!"
         else:
             success_text = "Sozlamalar yakunlandi!"

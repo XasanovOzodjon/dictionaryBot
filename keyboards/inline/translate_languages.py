@@ -1,4 +1,7 @@
+# pip imports
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+# local imports
 from utils.misc.languages import languages
 
 def create_translate_to_keyboard(page=1, languages_per_page=9, text = 'translate_to_') -> InlineKeyboardMarkup:

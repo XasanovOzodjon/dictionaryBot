@@ -1,25 +1,36 @@
-from utils.users_servise import get_user_and_settings
+# standard imports
+import threading
+
+# pip imports
+from googletrans import Translator
 from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import CallbackContext, CallbackQueryHandler, ConversationHandler, MessageHandler, Filters, CommandHandler
-from keyboards.inline.transletor import get_transletor_keyborad
-from keyboards.default.menu_keyboard import get_menu_keyboard
-from models.settings import User_Settings
-import threading
-import time
+
+# local imports
 from data import get_db
-from keyboards.inline.translate_languages import create_translate_to_keyboard
-from googletrans import Translator
 from states.start import TRANSLATE, CHECK_TR
+from utils.users_servise import UserUpdate, get_settings
+from keyboards.default.menu_keyboard import get_menu_keyboard
+from keyboards.inline.transletor import get_transletor_keyborad
+from keyboards.inline.translate_languages import create_translate_to_keyboard
+
 
 def transletor_handler(update: Update, context: CallbackContext):
-    user, user_setings = get_user_and_settings(update.effective_user.id)
-    if not user:
+    # Check if user data exists and has language setting
+    if not context.user_data or not context.user_data.get('language'):
         update.message.reply_text("Please start the bot using /start command.")
         return
+    
+    # Update user data if needed
+    if not context.user_data:
+        UserUpdate(update, context)
+    
+    
+    lang = context.user_data.get('language')
 
-    if user_setings.language == 'en':
+    if lang == 'en':
         text = "Translator:"
-    elif user_setings.language == 'ru':
+    elif lang == 'ru':
         text = "Переводчик:"
     else:
         text = "Tarjimon:"
@@ -44,16 +55,19 @@ def transletor_handler(update: Update, context: CallbackContext):
     
     update.message.reply_text(
         text=text,
-        reply_markup=get_transletor_keyborad(user_setings)
+        reply_markup=get_transletor_keyborad(t_from=context.user_data.get('translate_from'), t_to=context.user_data.get('translate_to'), lang=context.user_data.get('language'))
     )
     return TRANSLATE
 
 
 def tr(update: Update, context: CallbackContext):
-    user, user_settings = get_user_and_settings(update.effective_user.id)
+    
+    if not context.user_data:
+        UserUpdate(update, context)
+        
     text = update.message.text
-    from_user = user_settings.translate_from
-    to_tr = user_settings.translate_to
+    from_user = context.user_data.get('translate_from')
+    to_tr = context.user_data.get('translate_to')
     translator = Translator()
     result = translator.translate(f"{text}", src=f'{from_user}', dest=f'{to_tr}')
     
@@ -64,15 +78,18 @@ def tr(update: Update, context: CallbackContext):
 def check_call(update: Update, context: CallbackContext):
     query = update.callback_query
     query_data = query.data
-    user, user_settings = get_user_and_settings(update.effective_user.id)
+    if not context.user_data:
+        UserUpdate(update, context)
+    
+    lang = context.user_data.get('language')
     
     if query_data == "close_transletor":
         update.callback_query.message.delete()
         update.callback_query.answer()
-        
-        if user_settings.language == 'en':
+
+        if lang == 'en':
             menu_text = "Main Menu:"
-        elif user_settings.language == 'ru':
+        elif lang == 'ru':
             menu_text = "Главное меню:"
         else:
             menu_text = "Asosiy menu:"
@@ -80,15 +97,15 @@ def check_call(update: Update, context: CallbackContext):
         update.effective_message.bot.send_message(
             chat_id=update.effective_chat.id,
             text=menu_text,
-            reply_markup=get_menu_keyboard(user_settings.language)
+            reply_markup=get_menu_keyboard(lang)
         )
         query.answer()
         return ConversationHandler.END
     elif query_data in ['change_from', 'change_to', 'change_toto']:
         if query_data == "change_toto":
             with next(get_db()) as db:
-                user, user_settings = get_user_and_settings(update.effective_user.id)
-                
+                user_settings = get_settings(update.effective_user.id)
+
                 # Merge the object into current session to avoid session conflicts
                 user_settings = db.merge(user_settings)
                 
@@ -104,10 +121,11 @@ def check_call(update: Update, context: CallbackContext):
                 
                 # Save changes to database
                 db.commit()
+                UserUpdate(update, context)
                 
                 # Update the keyboard with new settings
                 try:
-                    query.edit_message_reply_markup(reply_markup=get_transletor_keyborad(user_settings))
+                    query.edit_message_reply_markup(reply_markup=get_transletor_keyborad(t_from=context.user_data.get('translate_from'), t_to=context.user_data.get('translate_to'), lang=context.user_data.get('language')))
                     query.answer("Tarjima tillari almashtirildi!")
                 except Exception:
                     # If keyboard update fails (e.g., same content), just answer the query
@@ -116,7 +134,7 @@ def check_call(update: Update, context: CallbackContext):
         
         if query_data == "change_to":
             with next(get_db()) as db:
-                user, user_settings = get_user_and_settings(update.effective_user.id)
+                user_settings = get_settings(update.effective_user.id)
                 
                 # Merge the object into current session to avoid session conflicts
                 user_settings = db.merge(user_settings)
@@ -134,7 +152,7 @@ def check_call(update: Update, context: CallbackContext):
         
         if query_data == "change_from":
             with next(get_db()) as db:
-                user, user_settings = get_user_and_settings(update.effective_user.id)
+                user_settings = get_settings(update.effective_user.id)
                 
                 # Merge the object into current session to avoid session conflicts
                 user_settings = db.merge(user_settings)
@@ -158,11 +176,12 @@ def check_call(update: Update, context: CallbackContext):
 def change_transletor_callback(update: Update, context: CallbackContext):
     query = update.callback_query
     query_data = query.data
+
+    user_settings = get_settings(update.effective_user.id)
     
     if query_data.startswith("translate_from_"):
         new_from_lang = query_data.replace("translate_from_", "")
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
@@ -170,7 +189,8 @@ def change_transletor_callback(update: Update, context: CallbackContext):
             
             # Save changes to database
             db.commit()
-            
+            UserUpdate(update, context)
+
             # Refresh the object to get the latest state
             db.refresh(user_settings)
             
@@ -182,17 +202,18 @@ def change_transletor_callback(update: Update, context: CallbackContext):
                 text = "Tarjimon:"
             query.edit_message_text(
                 text=text,
-                reply_markup=get_transletor_keyborad(user_settings))
+                reply_markup=get_transletor_keyborad(t_from=context.user_data.get('translate_from'), t_to=context.user_data.get('translate_to'), lang=context.user_data.get('language')))
             return TRANSLATE
+        
     if query_data.startswith("translate_to_"):
         new_to_lang = query_data.replace("translate_to_", "")
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             user_settings.translate_to = new_to_lang
             db.commit()
+            UserUpdate(update, context)
             
             # Refresh the object to get the latest state
             db.refresh(user_settings)
@@ -205,7 +226,7 @@ def change_transletor_callback(update: Update, context: CallbackContext):
                 text = "Tarjimon:"
             query.edit_message_text(
                 text=text,
-                reply_markup=get_transletor_keyborad(user_settings))
+                reply_markup=get_transletor_keyborad(t_from=context.user_data.get('translate_from'), t_to=context.user_data.get('translate_to'), lang=context.user_data.get('language')))
             return TRANSLATE
     elif query_data.startswith("page_"):
             # Handle page navigation for different language selection contexts
@@ -236,29 +257,22 @@ def change_transletor_callback(update: Update, context: CallbackContext):
 
 
 def exit_translator_fallback(update: Update, context: CallbackContext):
-    user, user_settings = get_user_and_settings(update.effective_user.id)
+    if not context.user_data:
+        UserUpdate(update, context)
     
-    if user_settings.language == 'en':
+    lang = context.user_data.get('language')
+    
+    if lang == 'en':
         menu_text = "Main Menu:"
-    elif user_settings.language == 'ru':
+    elif lang == 'ru':
         menu_text = "Главное меню:"
     else:
         menu_text = "Asosiy menu:"
     
     update.message.reply_text(
         text=menu_text,
-        reply_markup=get_menu_keyboard(user_settings.language)
+        reply_markup=get_menu_keyboard(lang)
     )
-    return ConversationHandler.END
-
-
-def start_command_fallback(update: Update, context: CallbackContext):
-    return ConversationHandler.END
-
-
-def help_command_fallback(update: Update, context: CallbackContext):
-    from .help import bot_help
-    bot_help(update, context)
     return ConversationHandler.END
 
 
@@ -283,8 +297,8 @@ def register_handlers(dp):
         MessageHandler(Filters.regex(r"^(Help ❓|Помощь ❓|Yordam ❓)$"), exit_translator_fallback),
         MessageHandler(Filters.regex(r"^(Dictionary 📚|Словарь 📚|Lug'at 📚)$"), exit_translator_fallback),
         MessageHandler(Filters.regex(r"^(Search 🔎|Поиск 🔎|Qidirish 🔎)$"), exit_translator_fallback),
-        CommandHandler("start", start_command_fallback),
-        CommandHandler("help", help_command_fallback),
+        CommandHandler("start", lambda update, context: ConversationHandler.END),
+        CommandHandler("help", lambda update, context: ConversationHandler.END),
         MessageHandler(Filters.command, exit_translator_fallback),
     ],
     per_message=False,

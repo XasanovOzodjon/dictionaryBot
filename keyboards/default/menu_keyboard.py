@@ -1,3 +1,4 @@
+# pip imports
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 
 def get_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:

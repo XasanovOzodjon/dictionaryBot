@@ -1,12 +1,16 @@
-from data import get_db
-from models.admins import Chanels
-from utils.admins import send_admin_message
-from middlewares.for_admin import admin_only
-from states.add_chanel import NAME, CHANNEL_ID, USERNAME
+# pip imports
 from telegram.ext import (
     CommandHandler, MessageHandler,
     ConversationHandler, Filters
 )
+
+# local imports
+from data import get_db
+from models.admins import Chanels
+from middlewares.for_admin import admin_only
+from states.add_chanel import (
+    NAME, CHANNEL_ID, USERNAME
+    )
 
 @admin_only
 def add_chanel(update, context):

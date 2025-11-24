@@ -1,6 +1,10 @@
-from data import Base
-from sqlalchemy import Column, Integer, BigInteger, String
+# pip imports
 from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, BigInteger, String
+
+# local imports
+from data import Base
+
 class User(Base):
     __tablename__ = "users"
 

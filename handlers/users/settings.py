@@ -1,20 +1,23 @@
-from models.users import User
-from middlewares.check_subscribe import subscription_required
+# pip imports
 from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
-from utils.users_servise import get_user_and_settings
-from keyboards.inline.settings import get_settings_keyboard
-from data import get_db
-from keyboards.inline.language import language_keyboard_s
 
+# local imports
+from data import get_db
 from states.start import SETTINGS, CHECK_SETTINGS
+from keyboards.inline.language import language_keyboard_s
+from keyboards.inline.settings import get_settings_keyboard
+from middlewares.check_subscribe import subscription_required
 from keyboards.default.menu_keyboard import get_menu_keyboard
 from keyboards.inline.translate_languages import create_translate_to_keyboard
+from utils.users_servise import get_user_and_settings, get_settings, UserUpdate
 
 @subscription_required
 def settings_handler(update: Update, context):
     user, user_settings = get_user_and_settings(update.effective_user.id)
-
+    if not context.user_data:
+        UserUpdate(update, context)
+    
     if not user or not user_settings:
         update.message.reply_text("Please start the bot using /start command.")
         return ConversationHandler.END
@@ -32,20 +35,23 @@ def settings_handler(update: Update, context):
 def check_settings_callback(update: Update, context):
     query = update.callback_query
     query_data = query.data
+    user_settings = get_settings(update.effective_user.id)
     
+    if not context.user_data:
+        UserUpdate(update, context)
+
     if query_data == "None":
         query.answer()
         return SETTINGS
     if query_data == "enable_tog":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
-            
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             user_settings.use_TOG = True
             
             # Save changes to database
             db.commit()
+            UserUpdate(update, context)
 
             try:
                 query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
@@ -55,7 +61,6 @@ def check_settings_callback(update: Update, context):
             return SETTINGS
     if query_data == "disable_tog":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
@@ -63,6 +68,7 @@ def check_settings_callback(update: Update, context):
             
             # Save changes to database
             db.commit()
+            UserUpdate(update, context)
             
             try:
                 query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
@@ -72,12 +78,12 @@ def check_settings_callback(update: Update, context):
             return SETTINGS
     if query_data == "enable_ai":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             user_settings.ai_assistant = True
             db.commit()
+            UserUpdate(update, context)
             try:
                 query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
             except Exception:
@@ -86,12 +92,12 @@ def check_settings_callback(update: Update, context):
             return SETTINGS
     if query_data == "disable_ai":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             user_settings.ai_assistant = False
             db.commit()
+            UserUpdate(update, context)
             try:
                 query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
             except Exception:
@@ -99,7 +105,6 @@ def check_settings_callback(update: Update, context):
                 pass
             return SETTINGS
     if query_data == "close_settings":
-        user, user_settings = get_user_and_settings(update.effective_user.id)
         update.callback_query.message.delete()
         update.callback_query.answer()
         update.effective_message.bot.send_message(
@@ -108,10 +113,8 @@ def check_settings_callback(update: Update, context):
             reply_markup=get_menu_keyboard(user_settings.language)
         )
         return ConversationHandler.END
-
     if query_data == "change_from":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
@@ -125,12 +128,11 @@ def check_settings_callback(update: Update, context):
                 text=text,
                 reply_markup=create_translate_to_keyboard(text='translate_from_')
                 )
-            return CHECK_SETTINGS
-    
+            return CHECK_SETTINGS   
     if query_data == "change_toto":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
-            
+            user_settings = get_settings(update.effective_user.id)
+
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             
@@ -146,7 +148,7 @@ def check_settings_callback(update: Update, context):
             
             # Save changes to database
             db.commit()
-            
+            UserUpdate(update, context)
             # Update the keyboard with new settings
             try:
                 query.edit_message_reply_markup(reply_markup=get_settings_keyboard(user_settings))
@@ -154,12 +156,9 @@ def check_settings_callback(update: Update, context):
             except Exception:
                 # If keyboard update fails (e.g., same content), just answer the query
                 query.answer("Tarjima tillari almashtirildi!")
-            return SETTINGS
-    
+            return SETTINGS   
     if query_data == "change_to":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
-            
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             if user_settings.language == 'en':
@@ -173,10 +172,8 @@ def check_settings_callback(update: Update, context):
                 reply_markup=create_translate_to_keyboard(text='translate_to_')
                 )
             return CHECK_SETTINGS
-
     if query_data == "close_settings":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             user_settings = db.merge(user_settings)
             
             update.callback_query.message.delete()
@@ -195,12 +192,10 @@ def check_settings_callback(update: Update, context):
                 text=text,
                 reply_markup=get_menu_keyboard(user_settings.language)
             )
-            return ConversationHandler.END
-    
+            return ConversationHandler.END    
     if query_data == "change_lang":
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
-            
+
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             if user_settings.language == 'en':
@@ -220,6 +215,10 @@ def check_settings_callback(update: Update, context):
 def change_settings_callback(update: Update, context):
     query = update.callback_query
     query_data = query.data
+    user_settings = get_settings(update.effective_user.id)
+    if not context.user_data:
+        UserUpdate(update, context)
+            
     if query_data in ['eng', 'rus', 'uzb']:
         if query_data == 'eng':
             new_lang = 'en'
@@ -228,7 +227,6 @@ def change_settings_callback(update: Update, context):
         elif query_data == 'uzb':
             new_lang = 'uz'
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
@@ -236,6 +234,7 @@ def change_settings_callback(update: Update, context):
             
             # Save changes to database
             db.commit()
+            UserUpdate(update, context)
             if new_lang == 'en':
                 text = "Settings:"
             elif new_lang == 'ru':
@@ -251,7 +250,6 @@ def change_settings_callback(update: Update, context):
     if query_data.startswith("translate_from_"):
         new_from_lang = query_data.replace("translate_from_", "")
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
@@ -259,6 +257,7 @@ def change_settings_callback(update: Update, context):
             
             # Save changes to database
             db.commit()
+            UserUpdate(update, context)
             
             # Refresh the object to get the latest state
             db.refresh(user_settings)
@@ -273,15 +272,17 @@ def change_settings_callback(update: Update, context):
                 text=text,
                 reply_markup=get_settings_keyboard(user_settings))
             return SETTINGS
+
     if query_data.startswith("translate_to_"):
         new_to_lang = query_data.replace("translate_to_", "")
         with next(get_db()) as db:
-            user, user_settings = get_user_and_settings(update.effective_user.id)
             
             # Merge the object into current session to avoid session conflicts
             user_settings = db.merge(user_settings)
             user_settings.translate_to = new_to_lang
             db.commit()
+            
+            UserUpdate(update, context)
             
             # Refresh the object to get the latest state
             db.refresh(user_settings)

@@ -1,6 +1,9 @@
-from data import Base
-from sqlalchemy import Column, Integer, BigInteger, String, ForeignKey, Boolean
+# pip imports
 from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, BigInteger, String, ForeignKey, Boolean
+
+# local imports
+from data import Base
 
 class User_Settings(Base):
     __tablename__ = "user_settings"

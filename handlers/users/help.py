@@ -1,5 +1,8 @@
-from telegram.ext import CommandHandler, MessageHandler, Filters
+# pip imports
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import CommandHandler, MessageHandler, Filters
+
+# local imports
 from middlewares.check_subscribe import subscription_required
 
 @subscription_required

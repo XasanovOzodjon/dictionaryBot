@@ -1,6 +1,9 @@
+# standard imports
 from functools import wraps
-from models.admins import Admins
+
+# local imports
 from data import get_db
+from models.admins import Admins
 
 def admin_only(func):
     @wraps(func)

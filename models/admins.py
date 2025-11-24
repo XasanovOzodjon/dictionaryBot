@@ -1,5 +1,8 @@
-from data import Base
+# pip imports
 from sqlalchemy import Column, Integer, String, Boolean, BigInteger
+
+# local imports
+from data import Base
 
 class Admins(Base):
     __tablename__ = "admins"

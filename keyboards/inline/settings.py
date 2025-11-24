@@ -1,6 +1,9 @@
+# pip imports
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from utils.misc.languages import languages
+
+# local imports
 from models.settings import User_Settings
+from utils.misc.languages import languages
 
 def get_settings_keyboard(user_settings: User_Settings) -> InlineKeyboardMarkup:
     

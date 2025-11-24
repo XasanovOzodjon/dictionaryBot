@@ -1,6 +1,10 @@
-from data import Base
-from sqlalchemy import Column, Integer, String, ForeignKey, Text
+# pip imports
 from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, ForeignKey, Text
+
+# local imports
+from data import Base
+
 
 class TOG(Base):
     __tablename__ = 'TOG'

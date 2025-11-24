@@ -1,17 +1,20 @@
+# pip imports
 from telegram.ext import Updater
-from loader import bot
+
+# local imports
 import handlers
-from utils import on_startup_notify
-from utils.set_bot_commands import set_default_commands
-from models.admins import Admins
-from models.users import User
-from models.settings import User_Settings
-from models.dict import Dict, TOG
-from data.database import Base, engine
+from loader import bot
 from data import get_db
+from models.users import User
+from models.admins import Admins
+from models.dict import Dict, TOG
+from utils import on_startup_notify
+from data.database import Base, engine
+from models.settings import User_Settings
+from utils.set_bot_commands import set_default_commands
 
 def main():
-    # Base.metadata.drop_all(engine)
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     
     try:

@@ -1,35 +1,46 @@
-from utils.users_servise import get_user_and_settings
-from telegram import Update, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import ConversationHandler, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
-from states.dict import GIVE_MULTE, MULTE_SAVE
+# pip imports
+from telegram import (
+    Update, ReplyKeyboardRemove, 
+    InlineKeyboardMarkup, InlineKeyboardButton
+)
+from telegram.ext import (
+    ConversationHandler, CommandHandler, 
+    MessageHandler, Filters, CallbackQueryHandler
+    )
+
+# local imports
 from data import get_db
+from models.dict import Dict, TOG
+from states.dict import GIVE_MULTE, MULTE_SAVE
 from keyboards.default.dict import get_dict_keyboard
 from middlewares.check_subscribe import subscription_required
-from models.dict import Dict, TOG
+from utils.users_servise import get_user_and_settings, UserUpdate
+
 
 @subscription_required
 def add_multe_dict_handler(update: Update, context):
-    user, user_settings = get_user_and_settings(update.effective_user.id)
-
-    if not user:
+    if not context.user_data:
+        UserUpdate(update, context)
+    if 'language' not in context.user_data:
         update.message.reply_text("Please start the bot using /start command.")
         return
+    lang = context.user_data.get('language')
 
-    if user_settings.use_TOG:
-        if user_settings.language == "en":
+    if context.user_data.get('use_tog'):
+        if lang == "en":
             text = "Method TOG is enabled.✅❗️"
             send_message = "Please enter the words (keys) you want to add:\n\nKey1 - Value1:Obraz1 - Garmanizatsiya1\nKey2 - Value2:Obraz2 - Garmanizatsiya2\n...\n\nEach new word must be on a new line."
-        elif user_settings.language == "ru":
+        elif lang == "ru":
             text = "Метод TOG включен.✅❗️"
             send_message = "Пожалуйста, введите слова (ключи), которые вы хотите добавить:\n\nКлюч1 - Значение1:Образ1 - Гармонизация1\nКлюч2 - Значение2:Образ2 - Гармонизация2\n...\n\nКаждое новое слово должно быть на новой строке."
         else:
             text = "TOG usuli yoqilgan.✅❗️"
             send_message = "Iltimos, qo'shmoqchi bo'lgan so'zlarni quyidagi formatda kiriting:\n\nKalit1 - Qiymat1:Obraz1 - Garmanizatsiya1\nKalit2 - Qiymat2:Obraz2 - Garmanizatsiya2\n...\n\nHar bir yangi so'z yangi qatorda bo'lishi kerak."
     else:
-        if user_settings.language == "en":
+        if lang == "en":
             text = "Method TOG is disabled.🚫❗️"
             send_message = "Please enter the words (keys) you want to add:\n\nKey1 - Value1\nKey2 - Value2\n...\n\nEach new word must be on a new line."
-        elif user_settings.language == "ru":
+        elif lang == "ru":
             text = "Метод TOG отключен.🚫❗️"
             send_message = "Пожалуйста, введите слова (ключи), которые вы хотите добавить:\n\nКлюч1 - Значение1\nКлюч2 - Значение2\n...\n\nКаждое новое слово должно быть на новой строке."
         else:
@@ -44,7 +55,12 @@ def add_multe_dict_handler(update: Update, context):
 
 def get_multe(update: Update, context):
     context.user_data['multe_input'] = update.message.text
-    user, user_settings = get_user_and_settings(update.effective_user.id)
+    if not context.user_data:
+        UserUpdate(update, context)
+    if 'language' not in context.user_data:
+        update.message.reply_text("Please start the bot using /start command.")
+        return
+    lang = context.user_data.get('language')
     texts = []
     error_lines = []
     lines = update.message.text.strip().split('\n')
@@ -57,9 +73,9 @@ def get_multe(update: Update, context):
         # Split by first '-' to separate key and rest
         first_dash_idx = line.find('-')
         if first_dash_idx == -1:
-            if user_settings.language == "en":
+            if lang == "en":
                 error_lines.append(f"Line {line_num}: '{line}' - Format error (missing - symbol)")
-            elif user_settings.language == "ru":
+            elif lang == "ru":
                 error_lines.append(f"Строка {line_num}: '{line}' - Ошибка формата (отсутствует символ -)")
             else:
                 error_lines.append(f"Qator {line_num}: '{line}' - Format xato (- belgisi yo'q)")
@@ -69,20 +85,20 @@ def get_multe(update: Update, context):
         rest = line[first_dash_idx + 1:].strip()
         
         if not key:
-            if user_settings.language == "en":
+            if lang == "en":
                 error_lines.append(f"Line {line_num}: '{line}' - Key is empty")
-            elif user_settings.language == "ru":
+            elif lang == "ru":
                 error_lines.append(f"Строка {line_num}: '{line}' - Ключ пустой")
             else:
                 error_lines.append(f"Qator {line_num}: '{line}' - Kalit bo'sh")
             continue
-            
-        if user_settings.use_TOG:
+
+        if context.user_data.get('use_tog'):
             colon_idx = rest.find(':')
             if colon_idx == -1:
-                if user_settings.language == "en":
+                if lang == "en":
                     error_lines.append(f"Line {line_num}: '{line}' - TOG format error (missing : symbol)")
-                elif user_settings.language == "ru":
+                elif lang == "ru":
                     error_lines.append(f"Строка {line_num}: '{line}' - Ошибка TOG формата (отсутствует символ :)")
                 else:
                     error_lines.append(f"Qator {line_num}: '{line}' - TOG format xato (: belgisi yo'q)")
@@ -92,18 +108,18 @@ def get_multe(update: Update, context):
             obraz_garm_part = rest[colon_idx + 1:].strip()
             
             if not value:
-                if user_settings.language == "en":
+                if lang == "en":
                     error_lines.append(f"Line {line_num}: '{line}' - Translation is empty")
-                elif user_settings.language == "ru":
+                elif lang == "ru":
                     error_lines.append(f"Строка {line_num}: '{line}' - Перевод пустой")
                 else:
                     error_lines.append(f"Qator {line_num}: '{line}' - Tarjima bo'sh")
                 continue
                 
             if not obraz_garm_part:
-                if user_settings.language == "en":
+                if lang == "en":
                     error_lines.append(f"Line {line_num}: '{line}' - Obraz part is empty")
-                elif user_settings.language == "ru":
+                elif lang == "ru":
                     error_lines.append(f"Строка {line_num}: '{line}' - Часть образа пустая")
                 else:
                     error_lines.append(f"Qator {line_num}: '{line}' - Obraz qismi bo'sh")
@@ -112,9 +128,9 @@ def get_multe(update: Update, context):
             last_dash_idx = obraz_garm_part.rfind('-')
             if last_dash_idx == -1:
                 # Garmanizatsiya yo'q - bu xato
-                if user_settings.language == "en":
+                if lang == "en":
                     error_lines.append(f"Line {line_num}: '{line}' - Missing garmanization part (no - symbol)")
-                elif user_settings.language == "ru":
+                elif lang == "ru":
                     error_lines.append(f"Строка {line_num}: '{line}' - Отсутствует часть гармонизации (нет символа -)")
                 else:
                     error_lines.append(f"Qator {line_num}: '{line}' - Garmanizatsiya qismi yo'q (- belgisi yo'q)")
@@ -125,9 +141,9 @@ def get_multe(update: Update, context):
                 
                 # Garmanizatsiya bo'sh bo'lsa xato
                 if not garmanization:
-                    if user_settings.language == "en":
+                    if lang == "en":
                         error_lines.append(f"Line {line_num}: '{line}' - Garmanization is empty")
-                    elif user_settings.language == "ru":
+                    elif lang == "ru":
                         error_lines.append(f"Строка {line_num}: '{line}' - Гармонизация пустая")
                     else:
                         error_lines.append(f"Qator {line_num}: '{line}' - Garmanizatsiya bo'sh")
@@ -143,9 +159,9 @@ def get_multe(update: Update, context):
         else:
             value = rest
             if not value:
-                if user_settings.language == "en":
+                if lang == "en":
                     error_lines.append(f"Line {line_num}: '{line}' - Translation is empty")
-                elif user_settings.language == "ru":
+                elif lang == "ru":
                     error_lines.append(f"Строка {line_num}: '{line}' - Перевод пустой")
                 else:
                     error_lines.append(f"Qator {line_num}: '{line}' - Tarjima bo'sh")
@@ -160,9 +176,9 @@ def get_multe(update: Update, context):
     # Show errors if any
     if error_lines:
         error_count = len(error_lines)
-        if user_settings.language == "en":
+        if lang == "en":
             error_msg = f"❌ {error_count} lines have errors and were skipped:\n\n" + "\n".join(error_lines)
-        elif user_settings.language == "ru":
+        elif lang == "ru":
             error_msg = f"❌ {error_count} строк содержат ошибки и были пропущены:\n\n" + "\n".join(error_lines)
         else:
             error_msg = f"❌ {error_count} ta qatorda xato bor va o'tkazib yuborildi:\n\n" + "\n".join(error_lines)
@@ -170,12 +186,12 @@ def get_multe(update: Update, context):
     
     if texts:
         preview_text = "\n".join(texts)
-        if user_settings.language == "en":
+        if lang == "en":
             preview_header = f"✅ Here is the preview of the words that will be saved({len(texts)}):"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Confirm ✅", callback_data="confirm_save"), InlineKeyboardButton("Cancel ❌", callback_data="cancel_save")]
             ])
-        elif user_settings.language == "ru":
+        elif lang == "ru":
             preview_header = f"✅ Вот предварительный просмотр слов, которые будут сохранены({len(texts)}):"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Подтвердить ✅", callback_data="confirm_save"), InlineKeyboardButton("Отмена ❌", callback_data="cancel_save")]
@@ -192,9 +208,9 @@ def get_multe(update: Update, context):
         else:
             update.message.reply_text(f"{preview_header}\n\n{preview_text}", reply_markup=keyboard)
     else:
-        if user_settings.language == "en":
+        if lang == "en":
             update.message.reply_text("❌ No valid words found. Please check the format and try again.")
-        elif user_settings.language == "ru":
+        elif lang == "ru":
             update.message.reply_text("❌ Действительных слов не найдено. Пожалуйста, проверьте формат и попробуйте снова.")
         else:
             update.message.reply_text("❌ Hech qanday to'g'ri so'z topilmadi. Iltimos, formatni tekshirib qaytadan urinib ko'ring.")
@@ -202,30 +218,43 @@ def get_multe(update: Update, context):
     
     return MULTE_SAVE
 def cancel_handler(update: Update, context):
-    user, user_settings = get_user_and_settings(update.effective_user.id)
+    if not context.user_data:
+        UserUpdate(update, context)
+    if 'language' not in context.user_data:
+        update.message.reply_text("Please start the bot using /start command.")
+        return
+    
+    lang = context.user_data.get('language')
 
-    if user_settings.language == "en":
-        update.message.reply_text("Operation cancelled. ❌", reply_markup=get_dict_keyboard(user_settings.language))
-        update.message.reply_text("Dictionary Menu📚", reply_markup=get_dict_keyboard(user_settings.language))
-    elif user_settings.language == "ru":
-        update.message.reply_text("Операция отменена. ❌", reply_markup=get_dict_keyboard(user_settings.language))
-        update.message.reply_text("Меню словаря📚", reply_markup=get_dict_keyboard(user_settings.language))
+    if lang == "en":
+        update.message.reply_text("Operation cancelled. ❌")
+        update.message.reply_text("Dictionary Menu📚", reply_markup=get_dict_keyboard(lang))
+    elif lang == "ru":
+        update.message.reply_text("Операция отменена. ❌")
+        update.message.reply_text("Меню словаря📚", reply_markup=get_dict_keyboard(lang))
     else:
-        update.message.reply_text("Amal bekor qilindi. ❌", reply_markup=get_dict_keyboard(user_settings.language))
-        update.message.reply_text("Lug'at menu📚", reply_markup=get_dict_keyboard(user_settings.language))
+        update.message.reply_text("Amal bekor qilindi. ❌")
+        update.message.reply_text("Lug'at menu📚", reply_markup=get_dict_keyboard(lang))
 
 
 def save_multe(update: Update, context):
     query = update.callback_query
     query.answer()
+    
+    if not context.user_data:
+        UserUpdate(update, context)
+    if 'language' not in context.user_data:
+        query.edit_message_text("Please start the bot using /start command.")
+        return ConversationHandler.END
+    lang = context.user_data.get('language')
 
     user, user_settings = get_user_and_settings(update.effective_user.id)
 
     if query.data == "confirm_save":
         if 'words_to_save' not in context.user_data:
-            if user_settings.language == "en":
+            if lang == "en":
                 query.edit_message_text("❌ No words to save found. Please try again.")
-            elif user_settings.language == "ru":
+            elif lang == "ru":
                 query.edit_message_text("❌ Сохраненные слова не найдены. Пожалуйста, попробуйте снова.")
             else:
                 query.edit_message_text("❌ Saqlanadigan so'zlar topilmadi. Iltimos, qaytadan urinib ko'ring.")
@@ -268,7 +297,7 @@ def save_multe(update: Update, context):
                         )
                         db.add(new_tog)
                         db.commit()
-                    
+                
                     saved_words.append(word['key'])
                     
                 except Exception as e:
@@ -317,6 +346,7 @@ def save_multe(update: Update, context):
             query.message.reply_text("Lug'at menu📚", reply_markup=get_dict_keyboard(user_settings.language))
 
     context.user_data.clear()
+    UserUpdate(update, context)
     return ConversationHandler.END
 
 
